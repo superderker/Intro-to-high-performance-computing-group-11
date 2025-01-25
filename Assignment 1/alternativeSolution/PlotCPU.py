@@ -10,7 +10,8 @@ def doPlot(filename):
     for i in range(shape[1]-1):
         string="Core " + str(i+1)
         print(f"{string:<11}", end='', flush=True)
-    print(f"{"time":<11}")
+    timeStr="time"
+    print(f"{timeStr:<11}")
 
     def mapFunc(val):
         return f"{val:<10.5}"
