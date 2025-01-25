@@ -11,7 +11,7 @@ def collectUtil(fn):
     def measure(*args, **kwargs):
         def collect(event, args):
                 f=open("test.dat", "w")
-                measurements=np.array([0]*psutil.cpu_count(logical=False))
+                measurements=np.array([0]*psutil.cpu_count())
                 for i in measurements:
                     f.write(str(i) + " ")
                 f.write(f"{time()} \n")
