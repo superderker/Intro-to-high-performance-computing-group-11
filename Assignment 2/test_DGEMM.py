@@ -153,16 +153,17 @@ class TestDGEMM:
         
         print("std list: ", std_list_as_floats)
 
-        # 🔹 Plot standard deviation vs. matrix size
+        
         plt.figure(figsize=(8, 5))
         plt.plot(N_list, std_list_as_floats, marker='o', linestyle='-', color='b', label="Standard Deviation")
 
-        # 🔹 Labels & Title
+        
         plt.xlabel("Matrix Size (N)")
         plt.ylabel("Standard Deviation (ms)")
         plt.title("Standard Deviation of Execution Time vs. Matrix Size")
         plt.legend()
         plt.grid(True)
 
-        # 🔹 Show Plot
+        
+    
         plt.show()
