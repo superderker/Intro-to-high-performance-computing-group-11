@@ -9,6 +9,7 @@ MAX_VALUE = 10000 # use this?
 standard_deviation_list = []
 class TestDGEMM:
 # run with python3 -m pytest test_DGEMM.py (in virtial env)
+# python3 -m pytest -s test_DGEMM.py lets you see the time
 
     @pytest.mark.parametrize(
         "N",
@@ -102,7 +103,7 @@ class TestDGEMM:
     #         (1000)
     #     ]
     # )
-    # # python3 -m pytest -s test_DGEMM.py lets you see the time 
+    #  
 
     # def test_np_with_timer(self, N):
         
