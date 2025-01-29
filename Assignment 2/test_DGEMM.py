@@ -132,7 +132,7 @@ class TestDGEMM:
             (100)
         ]
     )
-    def test_np_with_timer_gather_std(self, N, iter=3):
+    def test_np_with_timer_gather_std(self, N, iter=10):
         res = []
         for i in range(iter):
             A = np.random.rand(N, N)

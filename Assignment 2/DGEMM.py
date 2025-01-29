@@ -36,6 +36,6 @@ def with_np(N, A, B):
             for k in range(N):
                 C[i][j] = C[i][j] + A[i][k] * B[k][j]
     return C
-# ---------------------------------------------------------------------
-# Different ones: 
+
+
 
