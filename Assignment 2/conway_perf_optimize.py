@@ -60,32 +60,24 @@ def addGosperGliderGun(i, j, grid):
 def update(grid, N):
     # copy grid since we require 8 neighbors for calculation
     # and we go line by line
-    newGrid = grid.copy()
-    for i in range(N):
-        for j in range(N):
-            # compute 8-neghbor sum
-            # using toroidal boundary conditions - x and y wrap around
-            # so that the simulaton takes place on a toroidal surface.
-            total = int(
-                (
-                    grid[i, (j - 1) % N]
-                    + grid[i, (j + 1) % N]
-                    + grid[(i - 1) % N, j]
-                    + grid[(i + 1) % N, j]
-                    + grid[(i - 1) % N, (j - 1) % N]
-                    + grid[(i - 1) % N, (j + 1) % N]
-                    + grid[(i + 1) % N, (j - 1) % N]
-                    + grid[(i + 1) % N, (j + 1) % N]
-                )
-                / 255
-            )
-            # apply Conway's rules
-            if grid[i, j] == ON:
-                if (total < 2) or (total > 3):
-                    newGrid[i, j] = OFF
-            else:
-                if total == 3:
-                    newGrid[i, j] = ON
+    neighbors = (
+        np.roll(grid, shift=1, axis=0) +  
+        np.roll(grid, shift=-1, axis=0) +  
+        np.roll(grid, shift=1, axis=1) + 
+        np.roll(grid, shift=-1, axis=1) +  
+        np.roll(grid, shift=(1, 1), axis=(0, 1)) + 
+        np.roll(grid, shift=(1, -1), axis=(0, 1)) + 
+        np.roll(grid, shift=(-1, 1), axis=(0, 1)) + 
+        np.roll(grid, shift=(-1, -1), axis=(0, 1)) 
+    )
+
+    neighbors = neighbors / 255
+
+    # Apply Conway's rules efficiently using NumPy boolean indexing
+    newGrid = np.where(
+        (grid == ON) & ((neighbors < 2) | (neighbors > 3)), OFF,  # Death by under/overpopulation
+        np.where((grid == OFF) & (neighbors == 3), ON, grid)  # Birth of a new cell
+    )
     # update data
     grid[:] = newGrid[:]
 
