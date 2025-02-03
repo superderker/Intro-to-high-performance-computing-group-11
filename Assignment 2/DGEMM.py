@@ -6,6 +6,7 @@
 #          }
 #       }
 #    }
+
 def with_lists(N, A, B):
     C = [[0 for _ in range(N)] for _ in range(N)]
 
@@ -27,7 +28,7 @@ def with_arrays(N, A, B):
     return C
 # task 2.1 
 import numpy as np
-def with_np(N, A, B):
+def with_np_slow(N, A, B):
 
     C = np.zeros((N, N))
 
@@ -36,6 +37,35 @@ def with_np(N, A, B):
             for k in range(N):
                 C[i][j] = C[i][j] + A[i][k] * B[k][j]
     return C
+def with_np(N, A, B):
+
+    C = np.zeros((N, N))
+
+    C = np.dot(A,B)
+    return C
+
+def with_np_slow_and_flops(N, A, B):
+
+    C = np.zeros((N, N))   
+    flops = 0
+
+    for i in range(N):
+        for j in range(N):
+            for k in range(N):
+                C[i][j] = C[i][j] + A[i][k] * B[k][j]
+                flops += 1
+    return C, flops
+
+def with_np_and_flops(N, A, B):
+
+    C = np.zeros((N, N))
+
+    C = np.dot(A,B)
+    flops = (2*(N**3))
+    return C, flops
+# Task 2.4 Using the timing information and the number of operations for the DGEMM, calculate the FLOPS/s. How many operations are carried out in DGEMM with N as the matrices dimension? Hint: Think about the number of iterations completed in the loops and the number of flops per iteration. How do the FLOPS/s you measured compare to the theoretical peak of your processor (if we assume that we do one operation per cycle, then the peak is the clock frequency value)
+
+# Task 2.5 Compare the performance results with the numpy matmul operation (that uses a BLAS library). 
 
 
 
