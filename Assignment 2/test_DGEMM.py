@@ -6,7 +6,9 @@ import array as arr
 import time
 import matplotlib.pyplot as plt
 MAX_VALUE = 10000 # use this?
-standard_deviation_list = []
+std_dev_list=[]
+std_dev_arr=[]
+std_dev_np = []
 mat_mul_list = []
 flops_list = []
 flops_per_second_list=[]
@@ -55,7 +57,7 @@ class TestDGEMM:
     def test_lists(self, N):
         A = [[random.randint(0, N) for _ in range(N)] for _ in range(N)]
         B = [[random.randint(0, N) for _ in range(N)] for _ in range(N)]
-        firstTask = DGEMM.with_lists(N, A, B)
+        firstTask, flops = DGEMM.with_lists(N, A, B)
         expected = np.dot(A, B)
         assert np.allclose(firstTask, expected)
     
@@ -77,7 +79,7 @@ class TestDGEMM:
     def test_arrays(self, N):
         A = [arr.array('i', [random.randint(0, N) for _ in range(N)]) for _ in range(N)]
         B = [arr.array('i', [random.randint(0, N) for _ in range(N)]) for _ in range(N)]
-        firstTask = DGEMM.with_arrays(N, A, B)
+        firstTask, flops = DGEMM.with_arrays(N, A, B)
         expected = np.dot(A, B)
         assert np.allclose(firstTask, expected)
         
@@ -137,6 +139,69 @@ class TestDGEMM:
             (100)
         ]
     )
+    def test_list_with_timer_gather_std(self, N, iter=10):
+        res = []
+        for i in range(iter):
+            A = np.random.rand(N, N) # IDK how this works but it does
+            B = np.random.rand(N, N)
+            t1 = time.perf_counter()
+            firstTask, flops = DGEMM.with_lists(N, A, B)
+            t2 = time.perf_counter()
+            tFinal = (t2 - t1) * 1000
+            # print("time for matrix ", N ,"X", N, " = ",  tFinal, "ms")
+            res.append(tFinal)
+            expected = np.dot(A, B)
+        standard_each_loop = np.std(res)
+        std_dev_list.append(standard_each_loop)
+        assert np.allclose(firstTask, expected)
+
+    @pytest.mark.parametrize(
+        "N",
+        [ 
+            (10),   
+            (20),
+            (30),
+            (40),
+            (50),
+            (60),
+            (70),
+            (80),
+            (90),
+            (100)
+        ]
+    )
+    def test_arr_with_timer_gather_std(self, N, iter=10):
+        res = []
+        for i in range(iter):
+            A = [arr.array('i', [random.randint(0, N) for _ in range(N)]) for _ in range(N)]
+            B = [arr.array('i', [random.randint(0, N) for _ in range(N)]) for _ in range(N)]
+            t1 = time.perf_counter()
+            firstTask, flops = DGEMM.with_arrays(N, A, B)
+            t2 = time.perf_counter()
+            tFinal = (t2 - t1) * 1000
+            # print("time for matrix ", N ,"X", N, " = ",  tFinal, "ms")
+            res.append(tFinal)
+            expected = np.dot(A, B)
+        standard_each_loop = np.std(res)
+        std_dev_arr.append(standard_each_loop)
+        assert np.allclose(firstTask, expected)
+        
+        
+    @pytest.mark.parametrize(
+        "N",
+        [ 
+            (10),   
+            (20),
+            (30),
+            (40),
+            (50),
+            (60),
+            (70),
+            (80),
+            (90),
+            (100)
+        ]
+    )
     def test_np_with_timer_gather_std(self, N, iter=10):
         res = []
         for i in range(iter):
@@ -146,16 +211,16 @@ class TestDGEMM:
             firstTask = DGEMM.with_np(N, A, B)
             t2 = time.perf_counter()
             tFinal = (t2 - t1) * 1000
-            print("time for matrix ", N ,"X", N, " = ",  tFinal, "ms")
+            # print("time for matrix ", N ,"X", N, " = ",  tFinal, "ms")
             res.append(tFinal)
             expected = np.dot(A, B)
         standard_each_loop = np.std(res)
-        standard_deviation_list.append(standard_each_loop)
+        std_dev_np.append(standard_each_loop)
             
         assert np.allclose(firstTask, expected)
     
     def test_standard_deviation(self, N_list=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]):
-        std_list_as_floats = [float(std) for std in standard_deviation_list]
+        std_list_as_floats = [float(std) for std in std_dev_np]
         
         # print("std list: ", std_list_as_floats)
 
@@ -210,15 +275,15 @@ class TestDGEMM:
             firstTask, flops = DGEMM.with_np_and_flops(N, A, B)
             t2 = time.perf_counter()
             tFinal = (t2 - t1) * 1000
-            print("time for matrix ", N ,"X", N, " = ",  tFinal, "ms")
+            # print("time for matrix ", N ,"X", N, " = ",  tFinal, "ms")
 
             res.append(tFinal)
             
         
             expected = np.dot(A, B)
         standard_each_loop = np.std(res)
-        standard_deviation_list.append(standard_each_loop)
-        print("flops: ", flops)
+        std_dev_np.append(standard_each_loop)
+        # print("flops: ", flops)
         flops_list.append(flops_res)# always the same anyway
         flops_res.append(flops)
         flops_per_second=float(flops/standard_each_loop)*1000000    # I think this is right since timer is in ns
@@ -265,7 +330,7 @@ class TestDGEMM:
                 firstTask = DGEMM.with_matmul(N, A, B)
                 t2 = time.perf_counter()
                 tFinal = (t2 - t1) * 1000
-                print("time for matrix ", N ,"X", N, " = ",  tFinal, "ms")
+                # print("time for matrix ", N ,"X", N, " = ",  tFinal, "ms")
                 res.append(tFinal)
                 expected = np.dot(A, B)
             standard_each_loop = np.std(res)
@@ -273,18 +338,25 @@ class TestDGEMM:
                 
             assert np.allclose(firstTask, expected)
 
-
+    def test_compare_times_all(self, N_list=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]):
+        std_mat_mul = [float(std) for std in mat_mul_list]
+        std_arr = [float(std) for std in std_dev_arr]
+        std_list = [float(std) for std in std_dev_list]
+        std_np = [float(std) for std in std_dev_np]
+        for i in range(len(mat_mul_list)):
+            print("with lists:", std_list[i], "with arrays: ", std_arr[i], "np.dot: ", std_np[i],  "vs", "mat mul: ", std_mat_mul[i])
+            all_stds = {
+                "lists": std_list[i],
+                "arrays": std_arr[i],
+                "np.dot": std_np[i],
+                "mat mul": std_mat_mul[i]
+            }
+            smallest = min(all_stds, key=all_stds.get)
+            print(f"Smallest: {all_stds[smallest]} from {smallest}")
+            
+            
     def test_standard_deviation_mat_mul(self, N_list=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]):
         std_list_as_floats = [float(std) for std in mat_mul_list]
-        std_list_np = [float(std) for std in standard_deviation_list]
-        for i in range(len(std_list_as_floats)):
-            print("np.dot: ", std_list_np[i], "ms",  "vs", "mat mul: ", std_list_as_floats[i], "ms")
-            if(std_list_np[i]>std_list_as_floats[i]):
-                print("the faster one is mat mul: ", min(std_list_np[i], std_list_as_floats[i]), "ms")
-            else:
-                print("the faster one is mat mul: ", min(std_list_np[i], std_list_as_floats[i]), "ms")
-        
-        # print("std list: ", std_list_as_floats)
 
         
         plt.figure(figsize=(8, 5))
@@ -301,4 +373,4 @@ class TestDGEMM:
 
         plt.show()
         
-        
+    

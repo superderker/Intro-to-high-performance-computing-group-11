@@ -8,24 +8,27 @@
 #    }
 
 def with_lists(N, A, B):
+    flops = 0
     C = [[0 for _ in range(N)] for _ in range(N)]
 
     for i in range(N):
         for j in range(N):
             for k in range(N):
                 C[i][j] += A[i][k] * B[k][j]
-    return C
+                flops += 1
+    return C, flops
 import array as arr
 def with_arrays(N, A, B):
     
     C = [arr.array('i', [0] * N) for _ in range(N)]
-
+    flops = 0
     for i in range(N):
         for j in range(N):
             for k in range(N):
                 C[i][j] += A[i][k] * B[k][j]
+                flops += 1
     
-    return C
+    return C, flops
 # task 2.1 
 import numpy as np
 def with_np_slow(N, A, B):
