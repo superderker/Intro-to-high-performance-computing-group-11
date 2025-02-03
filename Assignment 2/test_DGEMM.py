@@ -7,6 +7,7 @@ import time
 import matplotlib.pyplot as plt
 MAX_VALUE = 10000 # use this?
 standard_deviation_list = []
+mat_mul_list = []
 flops_list = []
 flops_per_second_list=[]
 flops = 0
@@ -235,3 +236,61 @@ class TestDGEMM:
 # Peak FLOPS=f×C×I
 # according to google my computer has f = 3.2 Ghz, C=4 (there are more cores but only 4 should be used by python), I=8 flops/cycle
 # = 102.4 Gflops/second which is way less than i got(wtf?)
+
+
+
+    # task 2.5
+    @pytest.mark.parametrize(
+        "N",
+        [ 
+            (10),   
+            (20),
+            (30),
+            (40),
+            (50),
+            (60),
+            (70),
+            (80),
+            (90),
+            (100)
+        ]
+    )
+    def test_np_with_timer_gather_std_mat_mul(self, N, iter=10):
+            res = []
+            for i in range(iter):
+                A = np.random.rand(N, N)
+                B = np.random.rand(N, N)
+                t1 = time.perf_counter()
+                firstTask = DGEMM.with_matmul(N, A, B)
+                t2 = time.perf_counter()
+                tFinal = (t2 - t1) * 1000
+                print("time for matrix ", N ,"X", N, " = ",  tFinal, "ms")
+                res.append(tFinal)
+                expected = np.dot(A, B)
+            standard_each_loop = np.std(res)
+            mat_mul_list.append(standard_each_loop)
+                
+            assert np.allclose(firstTask, expected)
+
+
+    def test_standard_deviation_mat_mul(self, N_list=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]):
+        std_list_as_floats = [float(std) for std in mat_mul_list]
+        
+        # print("std list: ", std_list_as_floats)
+
+        
+        plt.figure(figsize=(8, 5))
+        plt.plot(N_list, std_list_as_floats, marker='o', linestyle='-', color='b', label="Standard Deviation for mat mul (task 2.5)")
+
+        
+        plt.xlabel("Matrix Size (N)")
+        plt.ylabel("Standard Deviation (ms)")
+        plt.title("Standard Deviation of Execution Time vs. Matrix Size")
+        plt.legend()
+        plt.grid(True)
+
+        
+
+        plt.show()
+        
+        

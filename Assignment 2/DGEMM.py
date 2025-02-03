@@ -63,9 +63,9 @@ def with_np_and_flops(N, A, B):
     C = np.dot(A,B)
     flops = (2*(N**3))
     return C, flops
-# Task 2.4 Using the timing information and the number of operations for the DGEMM, calculate the FLOPS/s. How many operations are carried out in DGEMM with N as the matrices dimension? Hint: Think about the number of iterations completed in the loops and the number of flops per iteration. How do the FLOPS/s you measured compare to the theoretical peak of your processor (if we assume that we do one operation per cycle, then the peak is the clock frequency value)
-
 # Task 2.5 Compare the performance results with the numpy matmul operation (that uses a BLAS library). 
-
+def with_matmul(N, A, B):
+    C = np.matmul(A, B)
+    return C
 
 
