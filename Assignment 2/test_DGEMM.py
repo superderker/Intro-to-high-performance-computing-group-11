@@ -14,6 +14,7 @@ flops = 0
 class TestDGEMM:
 # run with python3 -m pytest test_DGEMM.py (in virtial env)
 # python3 -m pytest -s test_DGEMM.py lets you see the time
+# 
 
     @pytest.mark.parametrize(
         "N",
@@ -275,6 +276,9 @@ class TestDGEMM:
 
     def test_standard_deviation_mat_mul(self, N_list=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]):
         std_list_as_floats = [float(std) for std in mat_mul_list]
+        std_list_np = [float(std) for std in standard_deviation_list]
+        for i in range(len(std_list_as_floats)):
+            print("np.dot: ", std_list_np[i], "ms",  "vs", "mat mul: ", std_list_as_floats[i], "ms")
         
         # print("std list: ", std_list_as_floats)
 
