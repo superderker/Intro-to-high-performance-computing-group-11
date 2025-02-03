@@ -279,6 +279,10 @@ class TestDGEMM:
         std_list_np = [float(std) for std in standard_deviation_list]
         for i in range(len(std_list_as_floats)):
             print("np.dot: ", std_list_np[i], "ms",  "vs", "mat mul: ", std_list_as_floats[i], "ms")
+            if(std_list_np[i]>std_list_as_floats[i]):
+                print("the faster one is mat mul: ", min(std_list_np[i], std_list_as_floats[i]), "ms")
+            else:
+                print("the faster one is mat mul: ", min(std_list_np[i], std_list_as_floats[i]), "ms")
         
         # print("std list: ", std_list_as_floats)
 
