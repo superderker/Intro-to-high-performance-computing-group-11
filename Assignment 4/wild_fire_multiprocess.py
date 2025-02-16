@@ -1,12 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import multiprocessing
 
 # Constants
 GRID_SIZE = 800  # 800x800 forest grid
 FIRE_SPREAD_PROB = 0.3  # Probability that fire spreads to a neighboring tree
 BURN_TIME = 3  # Time before a tree turns into ash
 DAYS = 60  # Maximum simulation time
+
+NUM_SIMULATIONS = 8  # Number of independent wildfire simulations to run in parallel
 
 # State definitions
 EMPTY = 0    # No tree
@@ -35,7 +38,7 @@ def get_neighbors(x, y):
             neighbors.append((nx, ny))
     return neighbors
 
-def simulate_wildfire():
+def simulate_wildfire(sim_id):
     """Simulates wildfire spread over time."""
     forest, burn_time = initialize_forest()
     
@@ -66,23 +69,34 @@ def simulate_wildfire():
             break
         
         # Plot grid every 5 days
-        if day % 5 == 0 or day == DAYS - 1:
-            plt.figure(figsize=(6, 6))
-            plt.imshow(forest, cmap='viridis', origin='upper')
-            plt.title(f"Wildfire Spread - Day {day}")
-            plt.colorbar(label="State: 0=Empty, 1=Tree, 2=Burning, 3=Ash")
-            plt.show()
+        # if day % 5 == 0 or day == DAYS - 1:
+        #     plt.figure(figsize=(6, 6))
+        #     plt.imshow(forest, cmap='viridis', origin='upper')
+        #     plt.title(f"Wildfire Spread - Day {day}")
+        #     plt.colorbar(label="State: 0=Empty, 1=Tree, 2=Burning, 3=Ash")
+            # plt.show()
     
     return fire_spread
 
-# Run simulation
-fire_spread_over_time = simulate_wildfire()
+if __name__ == "__main__":
+    # Run simulation
+    with multiprocessing.Pool(processes=NUM_SIMULATIONS) as pool:
+        results = pool.map(simulate_wildfire, range(NUM_SIMULATIONS))
 
-# Plot results
-plt.figure(figsize=(8, 5))
-plt.plot(range(len(fire_spread_over_time)), fire_spread_over_time, label="Burning Trees")
-plt.xlabel("Days")
-plt.ylabel("Number of Burning Trees")
-plt.title("Wildfire Spread Over Time")
-plt.legend()
-plt.show()
+    # Aggregate results
+    avg_fire_spread = np.zeros(DAYS)
+    for sim in results:
+        for day, fire_count in enumerate(sim):
+            avg_fire_spread[day] += fire_count
+
+    avg_fire_spread /= NUM_SIMULATIONS  # Compute the average across simulations
+        
+    # Plot results
+    plt.figure(figsize=(8, 5))
+    plt.plot(range(len(avg_fire_spread)), avg_fire_spread, label="Avg Burning Trees")
+    plt.xlabel("Days")
+    plt.ylabel("Number of Burning Trees")
+    plt.title("Average Wildfire Spread Over Time")
+    plt.legend()
+    # plt.show()
+    plt.savefig('wildfire_multiprocess.png')
