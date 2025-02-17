@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-import multiprocessing
+import timeit 
 
 # Constants
 GRID_SIZE = 800  # 800x800 forest grid
@@ -9,7 +9,7 @@ FIRE_SPREAD_PROB = 0.3  # Probability that fire spreads to a neighboring tree
 BURN_TIME = 3  # Time before a tree turns into ash
 DAYS = 60  # Maximum simulation time
 
-NUM_SIMULATIONS = 8  # Number of independent wildfire simulations to run in parallel
+NUM_SIMULATIONS = 10  # Number of independent wildfire simulations to run in parallel
 
 # State definitions
 EMPTY = 0    # No tree
@@ -38,7 +38,7 @@ def get_neighbors(x, y):
             neighbors.append((nx, ny))
     return neighbors
 
-def simulate_wildfire(sim_id):
+def simulate_wildfire():
     """Simulates wildfire spread over time."""
     forest, burn_time = initialize_forest()
     
@@ -79,17 +79,18 @@ def simulate_wildfire(sim_id):
     return fire_spread
 
 if __name__ == "__main__":
+    start = timeit.default_timer()
+
     # Run simulation
-    with multiprocessing.Pool(processes=NUM_SIMULATIONS) as pool:
-        results = pool.map(simulate_wildfire, range(NUM_SIMULATIONS))
-
+    results = [simulate_wildfire() for _ in range(NUM_SIMULATIONS)]
+    
     # Aggregate results
-    avg_fire_spread = np.zeros(DAYS)
-    for sim in results:
-        for day, fire_count in enumerate(sim):
-            avg_fire_spread[day] += fire_count
+    padded_results = [np.pad(sim, (0, DAYS - len(sim)), mode='constant', constant_values=0) for sim in results]
+    results_array = np.array(padded_results) 
+    avg_fire_spread = np.mean(results_array, axis=0)  # Compute the average across simulations
 
-    avg_fire_spread /= NUM_SIMULATIONS  # Compute the average across simulations
+    end = timeit.default_timer()
+    print('Time taken in seconds: ', end - start)
         
     # Plot results
     plt.figure(figsize=(8, 5))
@@ -99,4 +100,4 @@ if __name__ == "__main__":
     plt.title("Average Wildfire Spread Over Time")
     plt.legend()
     # plt.show()
-    plt.savefig('wildfire_multiprocess.png')
+    plt.savefig('wildfire_serial.png')
