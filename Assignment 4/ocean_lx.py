@@ -75,12 +75,12 @@ if __name__ == "__main__":
     # Run simulation and time it
     start = time.time()
 
-    client = Client(n_workers=10)
+    client = Client(n_workers=8)
     print("Dask Dashboard link:", client.dashboard_link)  # Prints the link to the Dask Dashboard
 
     for t in range(TIME_STEPS):
         u_velocity, v_velocity, temperature = update_ocean(u_velocity, v_velocity, temperature, wind)
-        if t % 10 == 0 or t == TIME_STEPS - 1:
+        if t % 8 == 0 or t == TIME_STEPS - 1:
             print(f"Time Step {t}: Updated.")
 
     # Trigger computation and get final results
