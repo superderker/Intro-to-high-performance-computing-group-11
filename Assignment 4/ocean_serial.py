@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Grid size
-grid_size = 200
+grid_size = 2000
 TIME_STEPS = 100
 
 # Initialize temperature field (random values between 5C and 30C)

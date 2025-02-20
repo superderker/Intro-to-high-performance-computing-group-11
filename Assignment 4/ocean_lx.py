@@ -9,7 +9,9 @@ grid_size = 2000
 TIME_STEPS = 100
 
 # Initialize fields as Dask arrays with chunking
-chunk_size = (400, 400)
+chunk_size = (500, 500)
+# chunk_size = (1000, 1000)
+# chunk_size = (2000, 2000)
 temperature = da.random.uniform(5, 30, size=(grid_size, grid_size), chunks=chunk_size)
 u_velocity = da.random.uniform(-1, 1, size=(grid_size, grid_size), chunks=chunk_size)
 v_velocity = da.random.uniform(-1, 1, size=(grid_size, grid_size), chunks=chunk_size)
