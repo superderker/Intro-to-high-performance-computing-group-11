@@ -58,7 +58,7 @@ def color_transfer(image, dataslice):
 def plot_image(image, i):
     plt.figure(figsize=(4,4), dpi=80)
     
-    plt.imshow(image)
+    # plt.imshow(image)
     plt.axis('off')
     
     # Save figure
@@ -74,7 +74,7 @@ def plot_projection(datacube):
     
     # Save figure
     plt.savefig('projection.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
-    plt.show()
+    # plt.show()
 def main():
     """ Volume Rendering """
     # Load Datacube
@@ -146,7 +146,7 @@ def plot_outer_loop_times(outer_loop_times):
     plt.title('Outer Loop Times')
     plt.grid(True)
     plt.savefig('outer_loop_times.png', dpi=240, bbox_inches='tight', pad_inches=0)
-    plt.show()
+    # plt.show()
     
 	
 def plot_inner_loop_times_mean(inner_loop_times):
@@ -160,7 +160,7 @@ def plot_inner_loop_times_mean(inner_loop_times):
     plt.title('Inner Loop Times mean')
     plt.grid(True)
     plt.savefig('Inner_loop_times.png', dpi=240, bbox_inches='tight', pad_inches=0)
-    plt.show()
+    # plt.show()
 def plot_inner_loop_times_std(inner_loop_times):
     inner_loop_times_std = []
     for i in range(len(inner_loop_times)):
@@ -172,7 +172,7 @@ def plot_inner_loop_times_std(inner_loop_times):
     plt.title('Inner Loop Times std')
     plt.grid(True)
     plt.savefig('Inner_loop_times_std.png', dpi=240, bbox_inches='tight', pad_inches=0)
-    plt.show()
+    # plt.show()
   
 def print_times():
     for key, value in times.items():
