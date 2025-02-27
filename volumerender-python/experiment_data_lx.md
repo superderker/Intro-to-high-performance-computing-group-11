@@ -773,3 +773,52 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
 
 
 
+## Multiprocessing
+
+run 10 times
+
+async: Time:  60.3124525
+
+sync (blocking): Time:  60.4812567
+
+### Memory
+
+```python
+Filename: .\volumerender_mp.py
+
+Line #    Mem usage    Increment  Occurrences   Line Contents
+=============================================================
+    77     83.2 MiB     83.2 MiB           1   @profile
+    78                                         def main():
+    79                                             """ Volume Rendering """
+    80
+    81                                             # Load Datacube
+    82     84.0 MiB      0.8 MiB           1       f = h5.File('datacube.hdf5', 'r')
+    83    148.4 MiB     64.4 MiB           1       datacube = np.array(f['density'])
+    84
+    85                                             # Datacube Grid
+    86    148.4 MiB      0.0 MiB           1       Nx, Ny, Nz = datacube.shape
+    87    148.4 MiB      0.0 MiB           1       x = np.linspace(-Nx / 2, Nx / 2, Nx)
+    88    148.4 MiB      0.0 MiB           1       y = np.linspace(-Ny / 2, Ny / 2, Ny)
+    89    148.4 MiB      0.0 MiB           1       z = np.linspace(-Nz / 2, Nz / 2, Nz)
+    90    148.4 MiB      0.0 MiB           1       points = (x, y, z)
+    91
+    92                                             # Do Volume Rendering at Different Veiwing Angles
+    93    148.4 MiB      0.0 MiB           1       Nangles = 10
+    94    148.4 MiB      0.0 MiB           1       num_process = 10
+    95    149.1 MiB      0.7 MiB           1       with multiprocessing.Pool(processes=num_process) as pool:
+    96    149.1 MiB      0.0 MiB          13           pool.starmap_async(render, [(i, points, datacube, Nangles) for i in range(Nangles)])
+    97    149.1 MiB      0.0 MiB           1           pool.apply_async(simple_projection, args=(datacube,))
+    98    149.1 MiB      0.0 MiB           1           pool.close()
+    99    149.1 MiB     -0.0 MiB           1           pool.join()
+   100    149.1 MiB      0.0 MiB           1       return 0
+
+
+Wrote profile results to volumerender_mp.py.lprof
+Timer unit: 1e-06 s
+```
+
+### Time
+
+The actual data seems to deviate significantly. It appears that `line_profiler` doesn't wait for the process to complete before being joined.
+
