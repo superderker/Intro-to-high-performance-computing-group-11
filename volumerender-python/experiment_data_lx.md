@@ -463,3 +463,313 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    100         1          0.4      0.4      0.0      return 0
 
 ```
+
+## Numba
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+import h5py as h5
+from scipy.interpolate import interpn
+import timeit
+# from memory_profiler import profile
+from numba import jit, njit, vectorize, float64, guvectorize
+
+"""
+Create Your Own Volume Rendering (With Python)
+Philip Mocz (2020) Princeton Univeristy, @PMocz
+
+Simulate the Schrodinger-Poisson system with the Spectral method
+"""
+
+# @guvectorize(['(float64[:,:], float64[:,:], float64[:,:], float64[:,:], float64[:,:])'], '(n,n)->(n,n), (n,n), (n,n), (n,n)',
+#               target='parallel', fastmath=True)
+# def transferFunction(x, r, g, b, a):
+#     exp1 = np.exp(-(x - 9.0) ** 2 / 1.0)
+#     exp2 = np.exp(-(x - 3.0) ** 2 / 0.1)
+#     exp3 = np.exp(-(x + 3.0) ** 2 / 0.5)
+#
+#     r[:, :] = 1.0 * exp1 + 0.1 * exp2 + 0.1 * exp3
+#     g[:, :] = 1.0 * exp1 + 1.0 * exp2 + 0.1 * exp3
+#     b[:, :] = 0.1 * exp1 + 0.1 * exp2 + 1.0 * exp3
+#     a[:, :] = 0.6 * exp1 + 0.1 * exp2 + 0.01 * exp3
+# using @njit here is not efficient
+# # @njit(fastmath=True)
+def transferFunction(x):
+    exp1 = np.exp(-(x - 9.0) ** 2 / 1.0)
+    exp2 = np.exp(-(x - 3.0) ** 2 / 0.1)
+    exp3 = np.exp(-(x + 3.0) ** 2 / 0.5)
+
+    r = 1.0 * exp1 + 0.1 * exp2 + 0.1 * exp3
+    g = 1.0 * exp1 + 1.0 * exp2 + 0.1 * exp3
+    b = 0.1 * exp1 + 0.1 * exp2 + 1.0 * exp3
+    a = 0.6 * exp1 + 0.1 * exp2 + 0.01 * exp3
+
+    return r, g, b, a
+
+
+@vectorize(['float64(float64, float64, float64, float64)'], fastmath=True, target='parallel')
+def rotate_qy(qy, qz, cos_angle, sin_angle):
+    qyR = qy * cos_angle - qz * sin_angle
+    return qyR
+
+@vectorize(['float64(float64, float64, float64, float64)'], fastmath=True, target='parallel')
+def rotate_qz(qy, qz, cos_angle, sin_angle):
+    qzR = qy * sin_angle + qz * cos_angle
+    return qzR
+
+
+@profile
+def main():
+    """ Volume Rendering """
+
+    # Load Datacube
+    f = h5.File('datacube.hdf5', 'r')
+    datacube = np.array(f['density'])
+
+    # Datacube Grid
+    Nx, Ny, Nz = datacube.shape
+    x = np.linspace(-Nx / 2, Nx / 2, Nx)
+    y = np.linspace(-Ny / 2, Ny / 2, Ny)
+    z = np.linspace(-Nz / 2, Nz / 2, Nz)
+    points = (x, y, z)
+
+    # Do Volume Rendering at Different Veiwing Angles
+    Nangles = 10
+    angle_unit = np.pi / 2 / Nangles
+    N = 180
+    c = np.linspace(-N / 2, N / 2, N)
+    qx, qy, qz = np.meshgrid(c, c, c)
+    cos_angles = np.cos(angle_unit * np.arange(Nangles))
+    sin_angles = np.sin(angle_unit * np.arange(Nangles))
+
+    for i in range(Nangles):
+        print('Rendering Scene ' + str(i + 1) + ' of ' + str(Nangles) + '.\n')
+
+        # Camera Grid / Query Points -- rotate camera view
+        cos_angle = cos_angles[i]
+        sin_angle = sin_angles[i]
+        # qxR = qx
+        # qyR = qy * cos_angle - qz * sin_angle
+        # qzR = qy * sin_angle + qz * cos_angle
+        qyR = rotate_qy(qy, qz, cos_angle, sin_angle)
+        qzR = rotate_qz(qy, qz, cos_angle, sin_angle)
+        # qyR, qzR = rotate(qy, qz, cos_angle, sin_angle)
+
+        # Interpolate onto Camera Grid
+        camera_grid_log = np.log(interpn(points, datacube, np.array([qx.ravel(), qyR.ravel(), qzR.ravel()]).T, method='linear')).reshape((N, N, N))
+
+        # Do Volume Rendering
+        r_channel = np.zeros((N, N))
+        g_channel = np.zeros((N, N))
+        b_channel = np.zeros((N, N))
+        for dataslice_log in camera_grid_log:
+            r, g, b, a = transferFunction(dataslice_log)
+            r_channel = a * r + (1 - a) * r_channel
+            g_channel = a * g + (1 - a) * g_channel
+            b_channel = a * b + (1 - a) * b_channel
+
+        image = np.stack((r_channel, g_channel, b_channel), axis=-1)
+        image = np.clip(image, 0.0, 1.0)
+
+        # Plot Volume Rendering
+        plt.figure(figsize=(4, 4), dpi=80)
+
+        plt.imshow(image)
+        plt.axis('off')
+
+        # Save figure
+        plt.savefig('volumerender' + str(i) + '.png', dpi=240, bbox_inches='tight', pad_inches=0)
+
+    # Plot Simple Projection -- for Comparison
+    plt.figure(figsize=(4, 4), dpi=80)
+
+    plt.imshow(np.log(np.mean(datacube, 0)), cmap='viridis')
+    plt.clim(-5, 5)
+    plt.axis('off')
+
+    # Save figure
+    plt.savefig('projection.png', dpi=240, bbox_inches='tight', pad_inches=0)
+    # plt.show()
+
+    return 0
+
+
+if __name__ == "__main__":
+    main()
+
+```
+
+### Memory
+
+```python
+
+Line #    Mem usage    Increment  Occurrences   Line Contents
+=============================================================
+    56    133.0 MiB    133.0 MiB           1   @profile
+    57                                         def main():
+    58                                             """ Volume Rendering """
+    59
+    60                                             # Load Datacube
+    61    133.6 MiB      0.6 MiB           1       f = h5.File('datacube.hdf5', 'r')
+    62    198.0 MiB     64.4 MiB           1       datacube = np.array(f['density'])
+    63
+    64                                             # Datacube Grid
+    65    198.0 MiB      0.0 MiB           1       Nx, Ny, Nz = datacube.shape
+    66    198.0 MiB      0.0 MiB           1       x = np.linspace(-Nx / 2, Nx / 2, Nx)
+    67    198.0 MiB      0.0 MiB           1       y = np.linspace(-Ny / 2, Ny / 2, Ny)
+    68    198.0 MiB      0.0 MiB           1       z = np.linspace(-Nz / 2, Nz / 2, Nz)
+    69    198.0 MiB      0.0 MiB           1       points = (x, y, z)
+    70
+    71                                             # Do Volume Rendering at Different Veiwing Angles
+    72    198.0 MiB      0.0 MiB           1       Nangles = 10
+    73    198.0 MiB      0.0 MiB           1       angle_unit = np.pi / 2 / Nangles
+    74    198.0 MiB      0.0 MiB           1       N = 180
+    75    198.0 MiB      0.0 MiB           1       c = np.linspace(-N / 2, N / 2, N)
+    76    331.6 MiB    133.5 MiB           1       qx, qy, qz = np.meshgrid(c, c, c)
+    77    331.6 MiB      0.0 MiB           1       cos_angles = np.cos(angle_unit * np.arange(Nangles))
+    78    331.6 MiB      0.0 MiB           1       sin_angles = np.sin(angle_unit * np.arange(Nangles))
+    79
+    80    544.5 MiB      0.0 MiB          11       for i in range(Nangles):
+    81    538.0 MiB      0.0 MiB          10           print('Rendering Scene ' + str(i + 1) + ' of ' + str(Nangles) + '.\n')
+    82
+    83                                                 # Camera Grid / Query Points -- rotate camera view
+    84    538.0 MiB      0.0 MiB          10           cos_angle = cos_angles[i]
+    85    538.0 MiB      0.0 MiB          10           sin_angle = sin_angles[i]
+    86                                                 # qxR = qx
+    87                                                 # qyR = qy * cos_angle - qz * sin_angle
+    88                                                 # qzR = qy * sin_angle + qz * cos_angle
+    89    538.0 MiB     44.9 MiB          10           qyR = rotate_qy(qy, qz, cos_angle, sin_angle)
+    90    538.0 MiB     44.5 MiB          10           qzR = rotate_qz(qy, qz, cos_angle, sin_angle)
+    91                                                 # qyR, qzR = rotate(qy, qz, cos_angle, sin_angle)
+    92
+    93                                                 # Interpolate onto Camera Grid
+    94    671.5 MiB   -444.7 MiB          30           camera_grid_log = np.log(interpn(points, datacube, np.array([qx.ravel(), qyR.ravel(), qzR.ravel()]).T,
+    95    671.5 MiB   -889.8 MiB          20                                            method='linear')).reshape((N, N, N))
+    96
+    97                                                 # Do Volume Rendering
+    98    582.5 MiB   -889.7 MiB          10           r_channel = np.zeros((N, N))
+    99    582.5 MiB      0.2 MiB          10           g_channel = np.zeros((N, N))
+   100    582.5 MiB      0.0 MiB          10           b_channel = np.zeros((N, N))
+   101    538.0 MiB   -677.7 MiB        1810           for dataslice_log in camera_grid_log:
+   102    538.0 MiB   -180.4 MiB        1800               r, g, b, a = transferFunction(dataslice_log)
+   103    538.0 MiB   -250.9 MiB        1800               r_channel = a * r + (1 - a) * r_channel
+   104    538.0 MiB   -282.4 MiB        1800               g_channel = a * g + (1 - a) * g_channel
+   105    538.0 MiB   -351.8 MiB        1800               b_channel = a * b + (1 - a) * b_channel
+   106
+   107    538.0 MiB     -1.4 MiB          10           image = np.stack((r_channel, g_channel, b_channel), axis=-1)
+   108    538.0 MiB      0.7 MiB          10           image = np.clip(image, 0.0, 1.0)
+   109
+   110                                                 # Plot Volume Rendering
+   111    539.1 MiB     22.6 MiB          10           plt.figure(figsize=(4, 4), dpi=80)
+   112
+   113    540.3 MiB     11.0 MiB          10           plt.imshow(image)
+   114    540.3 MiB      0.0 MiB          10           plt.axis('off')
+   115
+   116                                                 # Save figure
+   117    544.5 MiB     40.6 MiB          10           plt.savefig('volumerender' + str(i) + '.png', dpi=240, bbox_inches='tight', pad_inches=0)
+   118
+   119                                             # Plot Simple Projection -- for Comparison
+   120    545.4 MiB      0.9 MiB           1       plt.figure(figsize=(4, 4), dpi=80)
+   121
+   122    546.3 MiB      0.9 MiB           1       plt.imshow(np.log(np.mean(datacube, 0)), cmap='viridis')
+   123    546.3 MiB      0.0 MiB           1       plt.clim(-5, 5)
+   124    546.3 MiB      0.0 MiB           1       plt.axis('off')
+   125
+   126                                             # Save figure
+   127    551.3 MiB      4.9 MiB           1       plt.savefig('projection.png', dpi=240, bbox_inches='tight', pad_inches=0)
+   128                                             # plt.show()
+   129
+   130    551.3 MiB      0.0 MiB           1       return 0
+
+```
+
+### Time
+
+```python
+Total time: 17.8501 s
+File: .\volumerender_numba.py
+Function: main at line 53
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    53                                           @profile
+    54                                           def main():
+    55                                               """ Volume Rendering """
+    56
+    57                                               # Load Datacube
+    58         1        479.0    479.0      0.0      f = h5.File('datacube.hdf5', 'r')
+    59         1      31761.2  31761.2      0.2      datacube = np.array(f['density'])
+    60
+    61                                               # Datacube Grid
+    62         1          1.5      1.5      0.0      Nx, Ny, Nz = datacube.shape
+    63         1         86.5     86.5      0.0      x = np.linspace(-Nx / 2, Nx / 2, Nx)
+    64         1         21.0     21.0      0.0      y = np.linspace(-Ny / 2, Ny / 2, Ny)
+    65         1         16.8     16.8      0.0      z = np.linspace(-Nz / 2, Nz / 2, Nz)
+    66         1          0.5      0.5      0.0      points = (x, y, z)
+    67
+    68                                               # Do Volume Rendering at Different Veiwing Angles
+    69         1          0.2      0.2      0.0      Nangles = 10
+    70         1          1.1      1.1      0.0      angle_unit = np.pi / 2 / Nangles
+    71         1          0.3      0.3      0.0      N = 180
+    72         1         16.7     16.7      0.0      c = np.linspace(-N / 2, N / 2, N)
+    73         1      24872.0  24872.0      0.1      qx, qy, qz = np.meshgrid(c, c, c)
+    74         1         23.4     23.4      0.0      cos_angles = np.cos(angle_unit * np.arange(Nangles))
+    75         1          3.9      3.9      0.0      sin_angles = np.sin(angle_unit * np.arange(Nangles))
+    76
+    77        11          8.8      0.8      0.0      for i in range(Nangles):
+    78        10       1697.0    169.7      0.0          print('Rendering Scene ' + str(i + 1) + ' of ' + str(Nangles) + '.\n')
+    79
+    80                                                   # Camera Grid / Query Points -- rotate camera view
+    81        10         21.4      2.1      0.0          cos_angle = cos_angles[i]
+    82        10          5.1      0.5      0.0          sin_angle = sin_angles[i]
+    83                                                   # qxR = qx
+    84                                                   # qyR = qy * cos_angle - qz * sin_angle
+    85                                                   # qzR = qy * sin_angle + qz * cos_angle
+    86        10     104454.3  10445.4      0.6          qyR = rotate_qy(qy, qz, cos_angle, sin_angle)
+    87        10      75544.7   7554.5      0.4          qzR = rotate_qz(qy, qz, cos_angle, sin_angle)
+    88                                                   # qyR, qzR = rotate(qy, qz, cos_angle, sin_angle)
+    89
+    90                                                   # Interpolate onto Camera Grid
+    91        30   14744452.5 491481.8     82.6          camera_grid_log = np.log(interpn(points, datacube, np.array([qx.ravel(), qyR.ravel(), qzR.ravel()]).T,
+    92        20         22.1      1.1      0.0                                           method='linear')).reshape((N, N, N))
+    93
+    94                                                   # Do Volume Rendering
+    95        10        350.1     35.0      0.0          r_channel = np.zeros((N, N))
+    96        10        197.8     19.8      0.0          g_channel = np.zeros((N, N))
+    97        10        194.7     19.5      0.0          b_channel = np.zeros((N, N))
+    98      1810      16829.7      9.3      0.1          for dataslice_log in camera_grid_log:
+    99      1800    1165503.2    647.5      6.5              r, g, b, a = transferFunction(dataslice_log)
+   100      1800      92257.7     51.3      0.5              r_channel = a * r + (1 - a) * r_channel
+   101      1800      75748.2     42.1      0.4              g_channel = a * g + (1 - a) * g_channel
+   102      1800      75187.1     41.8      0.4              b_channel = a * b + (1 - a) * b_channel
+   103
+   104        10       1347.1    134.7      0.0          image = np.stack((r_channel, g_channel, b_channel), axis=-1)
+   105        10       1688.3    168.8      0.0          image = np.clip(image, 0.0, 1.0)
+   106
+   107                                                   # Plot Volume Rendering
+   108        10     465704.4  46570.4      2.6          plt.figure(figsize=(4, 4), dpi=80)
+   109
+   110        10     225602.9  22560.3      1.3          plt.imshow(image)
+   111        10        447.3     44.7      0.0          plt.axis('off')
+   112
+   113                                                   # Save figure
+   114        10     564186.6  56418.7      3.2          plt.savefig('volumerender' + str(i) + '.png', dpi=240, bbox_inches='tight', pad_inches=0)
+   115
+   116                                               # Plot Simple Projection -- for Comparison
+   117         1      38520.6  38520.6      0.2      plt.figure(figsize=(4, 4), dpi=80)
+   118
+   119         1      24967.4  24967.4      0.1      plt.imshow(np.log(np.mean(datacube, 0)), cmap='viridis')
+   120         1         55.6     55.6      0.0      plt.clim(-5, 5)
+   121         1         46.1     46.1      0.0      plt.axis('off')
+   122
+   123                                               # Save figure
+   124         1     117791.4 117791.4      0.7      plt.savefig('projection.png', dpi=240, bbox_inches='tight', pad_inches=0)
+   125                                               # plt.show()
+   126
+   127         1          0.6      0.6      0.0      return 0
+
+```
+
+
+
