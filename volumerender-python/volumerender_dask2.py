@@ -32,7 +32,11 @@ def transferFunction(x):
 
     return r, g, b, a
 
-@delayed
+def interpolate_block(datacube, points, qi):
+    print("interpolate_block", qi.shape)
+    return interpn(points, datacube, qi, method='linear')
+
+# @delayed
 def render(i, points, datacube, Nangles):
     print('Rendering Scene ' + str(i + 1) + ' of ' + str(Nangles) + '.\n')
 
@@ -46,8 +50,13 @@ def render(i, points, datacube, Nangles):
     qzR = qy * np.sin(angle) + qz * np.cos(angle)
     qi = np.array([qxR.ravel(), qyR.ravel(), qzR.ravel()]).T
 
+    qi = da.from_array(qi, chunks=(N * N, 3))
+
     # Interpolate onto Camera Grid
-    camera_grid = interpn(points, datacube, qi, method='linear').reshape((N, N, N))
+    camera_grid_future = da.map_blocks(interpolate_block, datacube, points, qi, dtype='float64', chunks=(qi.chunks[0],)
+                                       , drop_axis=1)
+    camera_grid = camera_grid_future.compute()
+    camera_grid = camera_grid.reshape((N, N, N))
 
     # Do Volume Rendering
     image = np.zeros((camera_grid.shape[1], camera_grid.shape[2], 3))
@@ -68,7 +77,7 @@ def render(i, points, datacube, Nangles):
     # Save figure
     plt.savefig('volumerender' + str(i) + '_dask.png', dpi=240, bbox_inches='tight', pad_inches=0)
 
-@delayed
+# @delayed
 def simple_projection(datacube):
     # Plot Simple Projection -- for Comparison
     plt.figure(figsize=(4, 4), dpi=80)
@@ -85,7 +94,7 @@ def simple_projection(datacube):
 def main():
     """ Volume Rendering """
     # Start Dask Client
-    client = Client(n_workers=10)
+    client = Client(n_workers=12)
 
     # Load Datacube
     f = h5.File('datacube.hdf5', 'r')
@@ -101,14 +110,17 @@ def main():
     # Do Volume Rendering at Different Viewing Angles
     Nangles = 10
 
-    # Good to scatter big data to all worker processes
-    big_future_datacube = client.scatter(datacube, broadcast=True)
-    # Render
-    tasks = [render(i, points, big_future_datacube, Nangles) for i in range(Nangles)]
-    # Plot Simple Projection -- for Comparison
-    tasks.append(simple_projection(big_future_datacube))
-    # Compute
-    dask.compute(tasks)
+    for i in range(Nangles):
+        render(i, points, datacube, Nangles)
+    simple_projection(datacube)
+    # # Good to scatter big data to all worker processes
+    # big_future_datacube = client.scatter(datacube)
+    # # Render
+    # tasks = [render(i, points, big_future_datacube, Nangles) for i in range(Nangles)]
+    # # Plot Simple Projection -- for Comparison
+    # tasks.append(simple_projection(big_future_datacube))
+    # # Compute
+    # dask.compute(tasks)
 
     # Close Dask Client
     client.close()
@@ -120,4 +132,3 @@ if __name__ == "__main__":
     main()
     end = timeit.default_timer()
     print('Time: ', end - start)
-
