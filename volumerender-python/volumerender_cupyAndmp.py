@@ -68,7 +68,7 @@ def simple_projection(datacube):
 
     # Save figure
     plt.savefig('projection.png', dpi=240, bbox_inches='tight', pad_inches=0)
-    plt.clear()
+    plt.close()
 
 def main():
     """ Volume Rendering """
