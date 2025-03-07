@@ -51,7 +51,7 @@ def render(i, points, datacube, Nangles):
 
     # Plot Volume Rendering
     plt.figure(figsize=(4, 4), dpi=80)
-    plt.imshow(image)
+    plt.imshow(image.get())
     plt.axis('off')
 
     # Save figure
