@@ -53,27 +53,29 @@ def render(i, points, datacube, Nangles):
 
 	# Plot Volume Rendering
 	plt.figure(figsize=(4,4), dpi=80)
-
-	plt.imshow(image.get())
+	img=image.get()
+	plt.imshow(img)
 	plt.axis('off')
 
 	# Save figure
 	plt.savefig('volumerender' + str(i) + '.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
 	plt.close()
+	return img
 
 def simple_projection(datacube):
     # Plot Simple Projection -- for Comparison
 	plt.figure(figsize=(4,4), dpi=80)
-	plotData=cp.log(cp.mean(datacube,0))
-	plt.imshow(cp.asnumpy(plotData), cmap = 'viridis')
+	plotData=cp.asnumpy(cp.log(cp.mean(datacube,0)))
+	plt.imshow(plotData, cmap = 'viridis')
 	plt.clim(-5, 5) 
 	plt.axis('off')
 	
 	# Save figure
 	plt.savefig('projection.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
 	plt.close()
+	return plotData
 
-def main():
+def main(test=False):
 	""" Volume Rendering """
 	start=time()
 	# Load Datacube
@@ -88,17 +90,21 @@ def main():
 	points = (x, y, z)
 	
 	# Do Volume Rendering at Different Veiwing Angles
+	images=[]
 	Nangles = 10
 	for i in range(Nangles):
-		render(i, points, datacube, Nangles)
+		if test:
+			images.append(render(i, points, datacube, Nangles))
+		else:
+			render(i, points, datacube, Nangles)
 
-	simple_projection(datacube)
+	simple_proj=simple_projection(datacube)
 	
 	print(time()-start)
 	# Plot Simple Projection -- for Comparison
 	
 
-	return 0
+	return (images, simple_proj)
 	
 
 

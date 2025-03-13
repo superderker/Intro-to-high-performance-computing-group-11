@@ -12,8 +12,8 @@ from dask import delayed
 from dask.distributed import Client
 
 CHUNK_SIZE = 128
-INPUT_CHUNK = (CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE)   # 输入数据分块大小
-TARGET_SHAPE = (90, 90, 90)  # 最终输出形状
+INPUT_CHUNK = (CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE)
+TARGET_SHAPE = (90, 90, 90)
 N = 180
 
 def transferFunction(x):
@@ -30,13 +30,14 @@ def transferFunction(x):
 
 def process_block(block, Nangles, i, points, block_info=None):
     block_index = block_info[0]['chunk-location']
+    # print("block_index:", block_index)
 
-    # calculate local cordinates
+    # 计算当前块在全局坐标系统中的位置
     x_range = (block_index[0] * CHUNK_SIZE, (block_index[0] + 1) * CHUNK_SIZE)
     y_range = (block_index[1] * CHUNK_SIZE, (block_index[1] + 1) * CHUNK_SIZE)
     z_range = (block_index[2] * CHUNK_SIZE, (block_index[2] + 1) * CHUNK_SIZE)
 
-    # get local points
+    # 提取当前块对应的局部 points
     local_points = (points[0][x_range[0]:x_range[1]], points[1][y_range[0]:y_range[1]], points[2][z_range[0]:z_range[1]])
 
     angle = np.pi / 2 * i / Nangles
@@ -58,7 +59,7 @@ def process_block(block, Nangles, i, points, block_info=None):
             block_index[2] * qi_size: (block_index[2] + 1) * qi_size]
 
     qi_sub = np.array([qxR.ravel(), qyR.ravel(), qzR.ravel()]).T
-    
+
     interp_values = interpn(local_points, block, qi_sub, method='linear').reshape(TARGET_SHAPE)
     # interp_values = interpn(local_points, block, qi_sub, method='linear')
 
@@ -76,9 +77,7 @@ def render_single_angle(i, datacube_dask, Nangles, points):
         chunks=TARGET_SHAPE,
         block_info=True
     )
-    print("da_grid shape:", da_grid.shape)
     temp_grid = da_grid.compute()
-    print("camera_grid shape:", temp_grid.shape)
     #
     # blocks = []
     # for i in range(2):
@@ -149,7 +148,7 @@ def main():
     """ Volume Rendering """
 
     # Start Dask Client
-    client = Client(n_workers=8)
+    client = Client(n_workers=4)
 
     # Load Datacube
     with h5.File('datacube.hdf5', 'r') as f:

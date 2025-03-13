@@ -25,8 +25,8 @@ def transferFunction(x):
 
     return r, g, b, a
 
-@profile
-def main():
+#@profile
+def main(test=False):
     """ Volume Rendering """
 
     # Load Datacube
@@ -42,6 +42,7 @@ def main():
 
     # Do Volume Rendering at Different Veiwing Angles
     Nangles = 10
+    imgs=[]
     angle_unit = np.pi / 2 / Nangles
     N = 180
     c = np.linspace(-N / 2, N / 2, N)
@@ -76,7 +77,8 @@ def main():
 
         image = np.stack((r_channel, g_channel, b_channel), axis=-1)
         image = np.clip(image, 0.0, 1.0)
-
+        if test:
+            imgs.append(image)
         # Plot Volume Rendering
         plt.figure(figsize=(4, 4), dpi=80)
 
@@ -85,18 +87,20 @@ def main():
 
         # Save figure
         plt.savefig('volumerender' + str(i) + '.png', dpi=240, bbox_inches='tight', pad_inches=0)
-
+        plt.close()
     # Plot Simple Projection -- for Comparison
     plt.figure(figsize=(4, 4), dpi=80)
-
-    plt.imshow(np.log(np.mean(datacube, 0)), cmap='viridis')
+    simple_proj=np.log(np.mean(datacube, 0))
+    plt.imshow(simple_proj, cmap='viridis')
     plt.clim(-5, 5)
     plt.axis('off')
 
     # Save figure
     plt.savefig('projection.png', dpi=240, bbox_inches='tight', pad_inches=0)
+    plt.close()
     # plt.show()
-
+    if test:
+        return imgs, simple_proj
     return 0
 
 

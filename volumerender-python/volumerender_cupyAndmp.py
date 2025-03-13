@@ -51,26 +51,29 @@ def render(i, points, datacube, Nangles):
 
     # Plot Volume Rendering
     plt.figure(figsize=(4, 4), dpi=80)
-    plt.imshow(image.get())
+    img=image.get()
+    plt.imshow(img)
     plt.axis('off')
 
     # Save figure
     plt.savefig('volumerender' + str(i) + '.png', dpi=240, bbox_inches='tight', pad_inches=0)
     plt.close()
+    return img
 
 def simple_projection(datacube):
     # Plot Simple Projection -- for Comparison
     plt.figure(figsize=(4, 4), dpi=80)
-
-    plt.imshow(cp.log(cp.mean(datacube, 0)).get(), cmap='viridis')
+    img=cp.log(cp.mean(datacube, 0)).get()
+    plt.imshow(img, cmap='viridis')
     plt.clim(-5, 5)
     plt.axis('off')
 
     # Save figure
     plt.savefig('projection.png', dpi=240, bbox_inches='tight', pad_inches=0)
     plt.close()
+    return img
 
-def main():
+def main(test=False):
     """ Volume Rendering """
     #multiprocessing.set_start_method('spawn')
     start=time()
@@ -88,12 +91,15 @@ def main():
     # Do Volume Rendering at Different Veiwing Angles
     Nangles = 10
     num_process = 3
+    images=[]
     with multiprocessing.Pool(processes=num_process) as pool:
-        pool.starmap_async(render, [(i, points, datacube, Nangles) for i in range(Nangles)])
+        res=pool.starmap_async(render, [(i, points, datacube, Nangles) for i in range(Nangles)])
         pool.close()
         pool.join()
-    simple_projection(datacube)
+    simple_proj=simple_projection(datacube)
     print(time()-start)
+    if test:
+        return res.get(), simple_proj
     return 0
 #
 

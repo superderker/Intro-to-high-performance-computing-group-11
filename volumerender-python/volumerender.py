@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py as h5
+import timeit
 from scipy.interpolate import interpn
 
 """
@@ -20,9 +21,8 @@ def transferFunction(x):
 	return r,g,b,a
 
 
-def main():
+def main(angles=10, test=False):
 	""" Volume Rendering """
-	
 	# Load Datacube
 	f = h5.File('datacube.hdf5', 'r')
 	datacube = np.array(f['density'])
@@ -35,7 +35,8 @@ def main():
 	points = (x, y, z)
 	
 	# Do Volume Rendering at Different Veiwing Angles
-	Nangles = 10
+	Nangles = angles
+	imagesRet=[]
 	for i in range(Nangles):
 		
 		print('Rendering Scene ' + str(i+1) + ' of ' + str(Nangles) + '.\n')
@@ -61,9 +62,9 @@ def main():
 			image[:,:,0] = a*r + (1-a)*image[:,:,0]
 			image[:,:,1] = a*g + (1-a)*image[:,:,1]
 			image[:,:,2] = a*b + (1-a)*image[:,:,2]
-		
 		image = np.clip(image,0.0,1.0)
-		
+		if test:
+			imagesRet.append(image)
 		# Plot Volume Rendering
 		plt.figure(figsize=(4,4), dpi=80)
 		
@@ -72,25 +73,29 @@ def main():
 		
 		# Save figure
 		plt.savefig('volumerender' + str(i) + '.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
-	
+		plt.close()
 	
 	
 	# Plot Simple Projection -- for Comparison
 	plt.figure(figsize=(4,4), dpi=80)
-	
-	plt.imshow(np.log(np.mean(datacube,0)), cmap = 'viridis')
+	simple_proj=np.log(np.mean(datacube,0))
+	plt.imshow(simple_proj, cmap = 'viridis')
 	plt.clim(-5, 5)
 	plt.axis('off')
 	
 	# Save figure
 	plt.savefig('projection.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
-	plt.show()
+	#plt.show()
 	
-
+	if test:
+		return imagesRet, simple_proj
 	return 0
 	
 
 
   
 if __name__== "__main__":
-  main()
+    start = timeit.default_timer()
+    main(angles=50)
+    end = timeit.default_timer()
+    print('Time: ', end - start)
