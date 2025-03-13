@@ -10,6 +10,7 @@ from volumerender_python import main as python
 from volumerender_cupy import main as cupy
 from volumerender_cupyAndmp import main as cupyMp
 from volumerender_daskAndcupy import main as cupyDask
+from volumerender_daskAndGPU import main as daskGPU
 
 class TestVolumeRender:
     expectedFrames=[]
@@ -30,6 +31,7 @@ class TestVolumeRender:
             daskMp,
             dask,
             dask2,
+            daskGPU,
             cupy,
             cupyMp,
             cupyDask

@@ -71,29 +71,31 @@ def render(i, points, datacube, Nangles):
 
     # Plot Volume Rendering
     plt.figure(figsize=(4,4), dpi=80)
-
-    plt.imshow(image.get())
+    img=image.get()
+    plt.imshow(img)
     plt.axis('off')
 
     # Save figure
     plt.savefig('volumerender' + str(i) + '.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
     plt.close()
+    return img 
 
 @delayed
 def simple_projection(datacube):
     # Plot Simple Projection -- for Comparison
     plt.figure(figsize=(4,4), dpi=80)
-    plotData=cp.log(cp.mean(datacube,0))
-    plt.imshow(cp.asnumpy(plotData), cmap = 'viridis')
+    plotData=cp.asnumpy(cp.log(cp.mean(datacube,0)))
+    plt.imshow(plotData, cmap = 'viridis')
     plt.clim(-5, 5)
     plt.axis('off')
 
     # Save figure
     plt.savefig('projection.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
     plt.close()
+    return plotData
 
 # @profile
-def run(angles=10):
+def main(angles=10, test=False):
     """ Volume Rendering """
     start=time()
 
@@ -112,12 +114,17 @@ def run(angles=10):
 
     # Do Volume Rendering at Different Viewing Angles
     Nangles = angles
-
+    images=[]
     for i in range(Nangles):
-        render(i, points, datacube, Nangles)
-    simple_projection(datacube)
-    
+        if test:
+            images.append(render(i, points, datacube, Nangles))
+        else:
+            render(i, points, datacube, Nangles)
+    res=dask.compute(simple_projection(datacube))
     client.close()
+    if test:
+        simple_proj=list(res[0])
+        return images, simple_proj
     return time()-start
 
 
@@ -126,6 +133,6 @@ if __name__ == "__main__":
         for i in range(1,6):
             runs=[]
             for x in range(1,4):
-                runs.append(run(angles=i*10))
+                runs.append(main(angles=i*10))
             f.write(f"{i*10}: {np.mean(runs)}, {np.std(runs)} \n") 
 
