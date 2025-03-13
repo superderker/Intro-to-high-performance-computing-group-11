@@ -12,8 +12,8 @@ from dask import delayed
 from dask.distributed import Client
 
 CHUNK_SIZE = 128
-INPUT_CHUNK = (CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE)   # 输入数据分块大小
-TARGET_SHAPE = (90, 90, 90)  # 最终输出形状
+INPUT_CHUNK = (CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE)
+TARGET_SHAPE = (90, 90, 90)
 N = 180
 
 def transferFunction(x):
@@ -51,31 +51,15 @@ def process_block(block, Nangles, i, points, block_info=None):
     qxR = qxR[block_index[0] * qi_size: (block_index[0] + 1) * qi_size,
           block_index[0] * qi_size: (block_index[0] + 1) * qi_size,
           block_index[0] * qi_size: (block_index[0] + 1) * qi_size]
-    print("qxR[0][0][0]:", qxR[0][0][0])
-    print("qxR[0][0][89]:", qxR[0][0][89])
     qyR = qyR[block_index[1] * qi_size: (block_index[1] + 1) * qi_size,
             block_index[1] * qi_size: (block_index[1] + 1) * qi_size,
             block_index[1] * qi_size: (block_index[1] + 1) * qi_size]
-    print("qyR[0][0][0]:", qyR[0][0][0])
-    print("qyR[0][0][89]:", qyR[0][0][89])
     qzR = qzR[block_index[2] * qi_size: (block_index[2] + 1) * qi_size,
             block_index[2] * qi_size: (block_index[2] + 1) * qi_size,
             block_index[2] * qi_size: (block_index[2] + 1) * qi_size]
-    print("qzR[0][0][0]:", qzR[0][0][0])
-    print("qzR[0][0][89]:", qzR[0][0][89])
 
     qi_sub = np.array([qxR.ravel(), qyR.ravel(), qzR.ravel()]).T
 
-    print(f"x_range: {x_range}, {block_index}\n")
-    print(f"y_range: {y_range}, {block_index}\n")
-    print(f"z_range: {z_range}, {block_index}\n")
-
-    # print("qi_sub_shape:", qi_sub.shape)
-    # print("qi_sub_shape:", qi_sub[0])
-    # print("qi_sub_shape:", qi_sub[qi_sub.shape[0] - 1])
-    # print("local_points:", local_points)
-
-    # 执行插值
     interp_values = interpn(local_points, block, qi_sub, method='linear').reshape(TARGET_SHAPE)
     # interp_values = interpn(local_points, block, qi_sub, method='linear')
 
@@ -93,9 +77,7 @@ def render_single_angle(i, datacube_dask, Nangles, points):
         chunks=TARGET_SHAPE,
         block_info=True
     )
-    print("da_grid shape:", da_grid.shape)
     temp_grid = da_grid.compute()
-    print("camera_grid shape:", temp_grid.shape)
     #
     # blocks = []
     # for i in range(2):
