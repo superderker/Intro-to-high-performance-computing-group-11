@@ -86,7 +86,7 @@ def simple_projection(datacube):
     plt.close()
     return plotData
 # @profile
-def run(angles=10, test=False):
+def main(angles=10, test=False):
     """ Volume Rendering """
     # Start Dask Client
     start=time()
@@ -128,6 +128,6 @@ if __name__ == "__main__":
         for i in range(1,6):
             runs=[]
             for x in range(1,6):
-                runs.append(run(angles=i*10))
+                runs.append(main(angles=i*10))
             f.write(f"{i*10}: {np.mean(runs)}, {np.std(runs)} \n") 
 
