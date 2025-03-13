@@ -148,7 +148,7 @@ def main():
     """ Volume Rendering """
 
     # Start Dask Client
-    client = Client(n_workers=8)
+    client = Client(n_workers=4)
 
     # Load Datacube
     with h5.File('datacube.hdf5', 'r') as f:

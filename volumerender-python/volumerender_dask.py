@@ -67,25 +67,29 @@ def render(i, points, datacube, Nangles):
 
     # Save figure
     plt.savefig('volumerender' + str(i) + '_dask.png', dpi=240, bbox_inches='tight', pad_inches=0)
+    plt.close()
+    return image
 
 @delayed
 def simple_projection(datacube):
     # Plot Simple Projection -- for Comparison
     plt.figure(figsize=(4, 4), dpi=80)
-
-    plt.imshow(np.log(np.mean(datacube, 0)), cmap='viridis')
+    proj=np.log(np.mean(datacube, 0))
+    plt.imshow(proj, cmap='viridis')
     plt.clim(-5, 5)
     plt.axis('off')
 
     # Save figure
     plt.savefig('projection_dask.png', dpi=240, bbox_inches='tight', pad_inches=0)
     # plt.show()
+    plt.close()
+    return proj
 
 # @profile
-def main():
+def main(test=False):
     """ Volume Rendering """
     # Start Dask Client
-    client = Client(n_workers=10)
+    client = Client(n_workers=4)
 
     # Load Datacube
     f = h5.File('datacube.hdf5', 'r')
@@ -108,12 +112,16 @@ def main():
     # Plot Simple Projection -- for Comparison
     tasks.append(simple_projection(big_future_datacube))
     # Compute
-    dask.compute(tasks)
-
+    res=dask.compute(tasks)
     # Close Dask Client
     client.close()
+    if test:
+        res=list(res[0])
+        return res[:-1], res[len(res)-1:]
     return 0
 
+def test():
+    return main(test=True)
 
 if __name__ == "__main__":
     start = timeit.default_timer()

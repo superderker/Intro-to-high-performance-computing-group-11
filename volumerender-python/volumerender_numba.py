@@ -53,8 +53,7 @@ def rotate_qz(qy, qz, cos_angle, sin_angle):
     return qzR
 
 
-@profile
-def main():
+def main(test=False):
     """ Volume Rendering """
 
     # Load Datacube
@@ -76,7 +75,7 @@ def main():
     qx, qy, qz = np.meshgrid(c, c, c)
     cos_angles = np.cos(angle_unit * np.arange(Nangles))
     sin_angles = np.sin(angle_unit * np.arange(Nangles))
-
+    imagesRet=[]
     for i in range(Nangles):
         print('Rendering Scene ' + str(i + 1) + ' of ' + str(Nangles) + '.\n')
 
@@ -106,7 +105,8 @@ def main():
 
         image = np.stack((r_channel, g_channel, b_channel), axis=-1)
         image = np.clip(image, 0.0, 1.0)
-
+        if test:
+            imagesRet.append(image)
         # Plot Volume Rendering
         plt.figure(figsize=(4, 4), dpi=80)
 
@@ -115,19 +115,19 @@ def main():
 
         # Save figure
         plt.savefig('volumerender' + str(i) + '.png', dpi=240, bbox_inches='tight', pad_inches=0)
-
+        plt.close()
     # Plot Simple Projection -- for Comparison
     plt.figure(figsize=(4, 4), dpi=80)
-
-    plt.imshow(np.log(np.mean(datacube, 0)), cmap='viridis')
+    simple_proj=np.log(np.mean(datacube, 0))
+    plt.imshow(simple_proj, cmap='viridis')
     plt.clim(-5, 5)
     plt.axis('off')
 
     # Save figure
     plt.savefig('projection.png', dpi=240, bbox_inches='tight', pad_inches=0)
-    # plt.show()
-
-    return 0
+    plt.close()
+    if test:
+        return imagesRet, simple_proj
 
 
 if __name__ == "__main__":

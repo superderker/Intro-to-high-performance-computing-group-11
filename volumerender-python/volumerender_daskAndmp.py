@@ -87,9 +87,11 @@ def render_single_angle(i, points, shape, dtype, shared_mem_name, Nangles):
 
     # Save figure
     plt.savefig('volumerender' + str(i) + '_dask.png', dpi=240, bbox_inches='tight', pad_inches=0)
+    plt.close()
     end = timeit.default_timer()
     print(f'Time:  {str(i + 1)} [{end - start}]')
     existing_shm.close()
+    return image
 
 def simple_projection(shape, dtype, shared_mem_name):
     # Plot Simple Projection -- for Comparison
@@ -97,18 +99,20 @@ def simple_projection(shape, dtype, shared_mem_name):
     datacube = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
 
     plt.figure(figsize=(4, 4), dpi=80)
-
-    plt.imshow(np.log(np.mean(datacube, 0)), cmap='viridis')
+    proj=np.log(np.mean(datacube, 0))
+    plt.imshow(proj, cmap='viridis')
     plt.clim(-5, 5)
     plt.axis('off')
 
     # Save figure
     plt.savefig('projection.png', dpi=240, bbox_inches='tight', pad_inches=0)
+    plt.close()
     # plt.show()
 
     existing_shm.close()
+    return proj
 
-def main():
+def main(test=False):
     """ Volume Rendering """
 
     # Start Dask Client
@@ -137,14 +141,16 @@ def main():
     num_process = 10
 
     with multiprocessing.Pool(processes=num_process) as pool:
-        pool.starmap(render_single_angle, [(i, points, datacube.shape, datacube.dtype, SHARED_MEM_NAME, Nangles) for i in range(Nangles)])
-        pool.apply(simple_projection, args=(datacube.shape, datacube.dtype, SHARED_MEM_NAME))
+        res=pool.starmap(render_single_angle, [(i, points, datacube.shape, datacube.dtype, SHARED_MEM_NAME, Nangles) for i in range(Nangles)])
+        simple_proj=pool.apply(simple_projection, args=(datacube.shape, datacube.dtype, SHARED_MEM_NAME))
         pool.close()
         pool.join()
 
     shm.close()
     shm.unlink()
     client.close()
+    if test:
+        return res, simple_proj
     return 0
 
 if __name__ == "__main__":

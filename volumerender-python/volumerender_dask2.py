@@ -76,25 +76,28 @@ def render(i, points, datacube, Nangles):
 
     # Save figure
     plt.savefig('volumerender' + str(i) + '_dask.png', dpi=240, bbox_inches='tight', pad_inches=0)
-
+    plt.close()
+    return image
 # @delayed
 def simple_projection(datacube):
     # Plot Simple Projection -- for Comparison
     plt.figure(figsize=(4, 4), dpi=80)
-
-    plt.imshow(np.log(np.mean(datacube, 0)), cmap='viridis')
+    proj=np.log(np.mean(datacube, 0))
+    plt.imshow(proj, cmap='viridis')
     plt.clim(-5, 5)
     plt.axis('off')
 
     # Save figure
     plt.savefig('projection_dask.png', dpi=240, bbox_inches='tight', pad_inches=0)
     # plt.show()
+    plt.close()
+    return proj
 
 # @profile
-def main():
+def main(test=False):
     """ Volume Rendering """
     # Start Dask Client
-    client = Client(n_workers=12)
+    client = Client(n_workers=8)
 
     # Load Datacube
     f = h5.File('datacube.hdf5', 'r')
@@ -109,10 +112,11 @@ def main():
 
     # Do Volume Rendering at Different Viewing Angles
     Nangles = 10
-
+    images=[]
     for i in range(Nangles):
-        render(i, points, datacube, Nangles)
-    simple_projection(datacube)
+        if test:
+            images.append(render(i, points, datacube, Nangles))
+    simple_proj=simple_projection(datacube)
     # # Good to scatter big data to all worker processes
     # big_future_datacube = client.scatter(datacube)
     # # Render
@@ -124,6 +128,8 @@ def main():
 
     # Close Dask Client
     client.close()
+    if test:
+        return images, simple_proj
     return 0
 
 

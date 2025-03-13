@@ -63,29 +63,30 @@ def render(i, points, datacube, Nangles):
 
     # Plot Volume Rendering
     plt.figure(figsize=(4,4), dpi=80)
-
-    plt.imshow(image.get())
+    img=image.get()
+    plt.imshow(img)
     plt.axis('off')
 
     # Save figure
     plt.savefig('volumerender' + str(i) + '.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
     plt.close()
+    return img
 
 @delayed
 def simple_projection(datacube):
     # Plot Simple Projection -- for Comparison
-	plt.figure(figsize=(4,4), dpi=80)
-	plotData=cp.log(cp.mean(datacube,0))
-	plt.imshow(cp.asnumpy(plotData), cmap = 'viridis')
-	plt.clim(-5, 5) 
-	plt.axis('off')
-	
-	# Save figure
-	plt.savefig('projection.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
-	plt.close()
+    plt.figure(figsize=(4,4), dpi=80)
+    plotData=cp.asnumpy(cp.log(cp.mean(datacube,0)))
+    plt.imshow(plotData, cmap = 'viridis')
+    plt.clim(-5, 5) 
+    plt.axis('off')
 
+    # Save figure
+    plt.savefig('projection.png',dpi=240,  bbox_inches='tight', pad_inches = 0)
+    plt.close()
+    return plotData
 # @profile
-def run(angles=10):
+def run(angles=10, test=False):
     """ Volume Rendering """
     # Start Dask Client
     start=time()
@@ -111,11 +112,14 @@ def run(angles=10):
     # Plot Simple Projection -- for Comparison
     tasks.append(simple_projection(big_future_datacube))
     # Compute
-    dask.compute(tasks)
+    res=dask.compute(tasks)
 
     # Close Dask Client
     
     client.close()
+    if test:
+        res=list(res[0])
+        return res[:-1], res[len(res)-1:]
     return time()-start
 
 
