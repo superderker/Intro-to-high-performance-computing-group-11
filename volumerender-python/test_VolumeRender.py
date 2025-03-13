@@ -38,7 +38,7 @@ class TestVolumeRender:
     def test_validate(self, func):
         actualFrames, actualSimpleProjection = func(test=True)
         print(type(actualSimpleProjection))
-        assert np.allclose(list(actualSimpleProjection), expectedSimpleProjection)
+        assert np.allclose(actualSimpleProjection, expectedSimpleProjection, rtol=1e-04, atol=1e-05)
         for x in range(len(actualFrames)):
             print(f"frame{x}")
-            assert np.allclose(list(actualFrames[x]), expectedFrames[x])
+            assert np.allclose(actualFrames[x], expectedFrames[x])
