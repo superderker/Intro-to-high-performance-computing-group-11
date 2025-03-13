@@ -30,14 +30,13 @@ def transferFunction(x):
 
 def process_block(block, Nangles, i, points, block_info=None):
     block_index = block_info[0]['chunk-location']
-    # print("block_index:", block_index)
 
-    # 计算当前块在全局坐标系统中的位置
+    # calculate local cordinates
     x_range = (block_index[0] * CHUNK_SIZE, (block_index[0] + 1) * CHUNK_SIZE)
     y_range = (block_index[1] * CHUNK_SIZE, (block_index[1] + 1) * CHUNK_SIZE)
     z_range = (block_index[2] * CHUNK_SIZE, (block_index[2] + 1) * CHUNK_SIZE)
 
-    # 提取当前块对应的局部 points
+    # get local points
     local_points = (points[0][x_range[0]:x_range[1]], points[1][y_range[0]:y_range[1]], points[2][z_range[0]:z_range[1]])
 
     angle = np.pi / 2 * i / Nangles
@@ -51,31 +50,15 @@ def process_block(block, Nangles, i, points, block_info=None):
     qxR = qxR[block_index[0] * qi_size: (block_index[0] + 1) * qi_size,
           block_index[0] * qi_size: (block_index[0] + 1) * qi_size,
           block_index[0] * qi_size: (block_index[0] + 1) * qi_size]
-    print("qxR[0][0][0]:", qxR[0][0][0])
-    print("qxR[0][0][89]:", qxR[0][0][89])
     qyR = qyR[block_index[1] * qi_size: (block_index[1] + 1) * qi_size,
             block_index[1] * qi_size: (block_index[1] + 1) * qi_size,
             block_index[1] * qi_size: (block_index[1] + 1) * qi_size]
-    print("qyR[0][0][0]:", qyR[0][0][0])
-    print("qyR[0][0][89]:", qyR[0][0][89])
     qzR = qzR[block_index[2] * qi_size: (block_index[2] + 1) * qi_size,
             block_index[2] * qi_size: (block_index[2] + 1) * qi_size,
             block_index[2] * qi_size: (block_index[2] + 1) * qi_size]
-    print("qzR[0][0][0]:", qzR[0][0][0])
-    print("qzR[0][0][89]:", qzR[0][0][89])
 
     qi_sub = np.array([qxR.ravel(), qyR.ravel(), qzR.ravel()]).T
-
-    print(f"x_range: {x_range}, {block_index}\n")
-    print(f"y_range: {y_range}, {block_index}\n")
-    print(f"z_range: {z_range}, {block_index}\n")
-
-    # print("qi_sub_shape:", qi_sub.shape)
-    # print("qi_sub_shape:", qi_sub[0])
-    # print("qi_sub_shape:", qi_sub[qi_sub.shape[0] - 1])
-    # print("local_points:", local_points)
-
-    # 执行插值
+    
     interp_values = interpn(local_points, block, qi_sub, method='linear').reshape(TARGET_SHAPE)
     # interp_values = interpn(local_points, block, qi_sub, method='linear')
 
