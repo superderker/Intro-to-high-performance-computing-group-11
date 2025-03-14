@@ -14,9 +14,9 @@ from dask.diagnostics import ProgressBar
 from dask import delayed
 from dask.distributed import Client
 
-INPUT_CHUNK = (128, 128, 128)   # 输入数据分块大小
-OUTPUT_CHUNK = (90, 90, 90)     # 输出数据分块大小
-TARGET_SHAPE = (180, 180, 180)  # 最终输出形状
+INPUT_CHUNK = (128, 128, 128)
+OUTPUT_CHUNK = (90, 90, 90)
+TARGET_SHAPE = (180, 180, 180)
 SHARED_MEM_NAME = "datacube_shared"
 N = 180
 
@@ -39,7 +39,6 @@ def interpolate_block(datacube, points, qi):
 def render_single_angle(i, points, shape, dtype, shared_mem_name, Nangles):
 
     print('Rendering Scene ' + str(i + 1) + ' of ' + str(Nangles) + '.\n')
-    start = timeit.default_timer()
 
     existing_shm = shared_memory.SharedMemory(name=shared_mem_name)
     datacube = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
@@ -54,18 +53,13 @@ def render_single_angle(i, points, shape, dtype, shared_mem_name, Nangles):
     qzR = qy * np.sin(angle) + qz * np.cos(angle)
     qi = np.array([qxR.ravel(), qyR.ravel(), qzR.ravel()]).T
 
-    # 将查询点分块
-    qi = da.from_array(qi, chunks=(10000, 3))
-
-    # 对每个块并行调用插值函数
+    qi = da.from_array(qi, chunks=(N*N, 3))
     camera_grid_dask = da.map_blocks(
         interpolate_block,
         datacube, points, qi,
         dtype='float32',
         chunks=(qi.chunks[0],),
         drop_axis=1).compute()
-
-    # 将结果转换为三维数组
     camera_grid = camera_grid_dask.reshape((N, N, N))
 
     # Do Volume Rendering
@@ -88,8 +82,6 @@ def render_single_angle(i, points, shape, dtype, shared_mem_name, Nangles):
     # Save figure
     plt.savefig('volumerender' + str(i) + '_dask.png', dpi=240, bbox_inches='tight', pad_inches=0)
     plt.close()
-    end = timeit.default_timer()
-    print(f'Time:  {str(i + 1)} [{end - start}]')
     existing_shm.close()
     return image
 
@@ -116,11 +108,10 @@ def main(test=False):
     """ Volume Rendering """
 
     # Start Dask Client
-    client = Client(n_workers=8)
+    client = Client(n_workers=4)
 
     # Load Datacube
     with h5.File('datacube.hdf5', 'r') as f:
-        # 将数据完全加载到内存中，避免后续依赖HDF5文件
         datacube = np.array(f['density'])
 
     # Datacube Grid
