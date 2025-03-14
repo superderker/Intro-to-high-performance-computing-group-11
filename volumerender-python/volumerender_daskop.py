@@ -32,12 +32,12 @@ def process_block(block, Nangles, i, points, block_info=None):
     block_index = block_info[0]['chunk-location']
     # print("block_index:", block_index)
 
-    # 计算当前块在全局坐标系统中的位置
+    # calculate the range of the block
     x_range = (block_index[0] * CHUNK_SIZE, (block_index[0] + 1) * CHUNK_SIZE)
     y_range = (block_index[1] * CHUNK_SIZE, (block_index[1] + 1) * CHUNK_SIZE)
     z_range = (block_index[2] * CHUNK_SIZE, (block_index[2] + 1) * CHUNK_SIZE)
 
-    # 提取当前块对应的局部 points
+    # calculate the range of the local points
     local_points = (points[0][x_range[0]:x_range[1]], points[1][y_range[0]:y_range[1]], points[2][z_range[0]:z_range[1]])
 
     angle = np.pi / 2 * i / Nangles
@@ -69,7 +69,6 @@ def process_block(block, Nangles, i, points, block_info=None):
 
 
 def render_single_angle(i, datacube_dask, Nangles, points):
-    # 使用map_blocks分块计算
     da_grid = da.map_blocks(
         process_block,
         datacube_dask, Nangles=Nangles, i=i, points=points,
